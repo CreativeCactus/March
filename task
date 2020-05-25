@@ -1,0 +1,26 @@
+check(){ type $1 > /dev/null ; }
+check go || go(){ dgo "$@"; }
+dgo(){ ## Dockerized go utility, in case go is not present
+    echo "Running go dockerized..."
+    unset docker
+	OPT=${OPT:- -p 8080:8080 }
+	NAME=$(basename "$PWD")
+	docker run -it --rm ${OPT} \
+		-w /go/src/$NAME \
+		-v $(pwd):/go/src/$NAME \
+		--net=host \
+		-e GOCACHE="/go/src/$NAME/gocache" \
+		-e CGO_ENABLED=0 \
+		-e "GOFLAGS=-mod=vendor" \
+		-u $(id -u ${USER}):$(id -g ${USER}) \
+		golang:1.14-buster go "${@:-help}"
+}
+
+test(){ ## Run go tests
+    go test --cover -v ./...
+}
+
+help(){ ## Print some information about this taskfile
+	grep "##" task | grep -v dont_print_me
+}
+"${@:-help}"
