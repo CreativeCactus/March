@@ -2,6 +2,8 @@
 
 Highly flexible tag-based marshalling framework for Go.
 
+<img src="./docs/march.png"></img>
+
 ## Useful defaults
 
 The only thing you *need* to specify is a tag key.
@@ -39,6 +41,12 @@ func Test(){
     // string(data) == `{"blEh":123}`
 }
 ```
+
+## Top level types
+
+Currently supports structs only.
+
+Plans to support maps and arrays soon.
 
 ## Extensibility
 
