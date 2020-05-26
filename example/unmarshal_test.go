@@ -1,14 +1,16 @@
-package march
+package example
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"testing"
+
+	march "github.com/CreativeCactus/March"
 )
 
 func TestUnmarshalStrictFail(t *testing.T) {
-	M := March{Tag: "March"}
+	M := march.March{Tag: "March"}
 	data := `{
 		"embed":3,
 		"nest":{"nest":4},
@@ -46,7 +48,7 @@ func TestUnmarshalStrictFail(t *testing.T) {
 }
 
 func TestUnmarshalPass(t *testing.T) {
-	M := March{Tag: "March"}
+	M := march.March{Tag: "March"}
 	data := `{
 		"nest":{"nest":4},
 		"custom": "abc",
@@ -89,7 +91,7 @@ func TestUnmarshalPass(t *testing.T) {
 }
 
 func TestUnmarshalStrictPassNoEmbedded(t *testing.T) {
-	M := March{Tag: "March"}
+	M := march.March{Tag: "March"}
 	data := `{ "embeded": 3, "deep": 4 }`
 
 	// Test...
@@ -114,7 +116,7 @@ func TestUnmarshalStrictPassNoEmbedded(t *testing.T) {
 }
 
 func TestUnmarshalRelaxPass(t *testing.T) {
-	M := March{Tag: "March", Verbose: true}
+	M := march.March{Tag: "March", Verbose: true}
 	data := `{
 		"custom": "asd",
 		"int": 1,
@@ -155,7 +157,7 @@ func TestUnmarshalRelaxPass(t *testing.T) {
 }
 
 func _TestUnmarshalMap(t *testing.T) {
-	M := March{Tag: "March", Verbose: true}
+	M := march.March{Tag: "March", Verbose: true}
 	data := `{
 		"deep": 4,
 		"embeded":3,
@@ -190,7 +192,7 @@ func _TestUnmarshalMap(t *testing.T) {
 }
 
 func TestUnmarshalMapFail(t *testing.T) {
-	M := March{Tag: "March", Verbose: true}
+	M := march.March{Tag: "March", Verbose: true}
 	data := `{}`
 	// Test...
 	v := map[string][]byte{}
@@ -220,7 +222,7 @@ func (CustomReadFields) ReadFieldsMarch(data []byte) (fields map[string][]byte, 
 }
 
 func TestUnmarshalReadFields(t *testing.T) {
-	M := March{Tag: "March", Verbose: true}
+	M := march.March{Tag: "March", Verbose: true}
 	data := `{...}`
 
 	// Test...
@@ -241,7 +243,7 @@ func (um UnmarshalMap) UnmarshalMarch(data []byte) (err error) {
 }
 
 func TestUnmarshalMap(t *testing.T) {
-	M := March{Tag: "March", Verbose: true}
+	M := march.March{Tag: "March", Verbose: true}
 	data := `{}`
 
 	// Test...

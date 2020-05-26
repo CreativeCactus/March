@@ -17,6 +17,10 @@ func Test(){
 }
 ```
 
+```
+    // See ./example/main_test.go Example function
+```
+
 ## Use any tag key
 
 This feature allows for multiple instances of March,
@@ -48,7 +52,7 @@ Note: These methods will currently panic if they are written with the correct si
 If implemented, any `T` will be un/marshalled using this method instead of the default for the March instance.
 
 ```
-    // See ./types_test.go Custom type
+    // See ./example/main_test.go Custom type
 ```
 
 ### T.WriteFieldsX, T.ReadFieldsX
@@ -58,14 +62,16 @@ If implemented, any `T` will use these low level methods to write (to `[]byte`) 
 This is useful for changing the behavior of an existing `Un/MarshalX` function without rewriting it completely.
 
 ```
-    // See ./unmarshal_test.go TestUnmarshalReadFields
+    // See ./example/unmarshal_test.go TestUnmarshalReadFields
 ```
 
 ## Stability
 
 This library is in early stages, but aims to demonstrate reliability via a thorough test suite. If you are comfortable that your use case will fit within the existing tests, then you should be able to safely use this library.
 
-Note that this library uses reflection, so code coverage % does not give a good indication of actual test coverage.
+`./task test` or `go test -v ./...`
+
+Note that this library uses reflection, so code coverage % does not give a good indication of actual test coverage. As of writing coverage is around 75%-80%, but it cannot be seen when running tests because they are run from a different package namespace (to test public/private property access accurately).
 
 For anything serious, be sure to use [good `recover` practices](https://blog.golang.org/defer-panic-and-recover).
 

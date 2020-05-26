@@ -1,7 +1,9 @@
-package march
+package example
 
 import (
 	"testing"
+
+	march "github.com/CreativeCactus/March"
 )
 
 // Get a test value for the PtrS field.
@@ -13,7 +15,7 @@ func getPtrS(s string) **[]**string {
 }
 
 func TestMarshal(t *testing.T) {
-	M := March{Tag: "March"}
+	M := march.March{Tag: "March"}
 	m := T{
 		Embed: Embed{
 			Embeded: 10,
@@ -23,16 +25,7 @@ func TestMarshal(t *testing.T) {
 		},
 		PtrS: getPtrS("test"),
 		Int:  10,
-		// TODO UNIQUE S PROPERTY IS DUPLICATED INVALID JSON
-		//
-		//
-		//
-		//
-		//
-		//
-		//
-		//
-		//
+		// TODO: WIP (duplicate S?)
 	}
 
 	data, err := M.Marshal(m)
@@ -44,7 +37,7 @@ func TestMarshal(t *testing.T) {
 }
 
 func TestMarshalCustom(t *testing.T) {
-	M := March{Tag: "March", Debug: true}
+	M := march.March{Tag: "March", Debug: true}
 	m := Custom{
 		Custom: 3,
 		Nested: []Custom{
