@@ -5,9 +5,7 @@ import (
 	"reflect"
 )
 
-// MethodSuffix returns the string which appears at the end of the following methods as X
-// MarshalX
-// UnmarshalX
+// MethodSuffix returns the string which appears at the end of custom methods as X (see below)
 // It determines the name of the method to be called on types during marshal operations.
 func (M March) MethodSuffix() string {
 	if len(M.Suffix) > 0 {
@@ -19,21 +17,28 @@ func (M March) MethodSuffix() string {
 	return ""
 }
 
+// UnmarshalMethodName returns the name of the Unmarshal method to look for on custom types
 func (M March) UnmarshalMethodName() string {
 	return fmt.Sprintf("Unmarshal%s", M.MethodSuffix())
 }
+
+// MarshalMethodName returns the name of the Marshal method to look for on custom types
 func (M March) MarshalMethodName() string {
 	return fmt.Sprintf("Marshal%s", M.MethodSuffix())
 }
+
+// ReadFieldsMethodName returns the name of the ReadFields method to look for on custom types
 func (M March) ReadFieldsMethodName() string {
 	return fmt.Sprintf("ReadFields%s", M.MethodSuffix())
 }
+
+// WriteFieldsMethodName returns the name of the WriteFields method to look for on custom types
 func (M March) WriteFieldsMethodName() string {
 	return fmt.Sprintf("WriteFields%s", M.MethodSuffix())
 }
 
 // tryMarshal attempts to call a custom unmarshal method on the given type/value
-func (M March) tryMarshal(t reflect.Type, v reflect.Value) (ok bool, data []byte, err error) {
+func (M March) tryMarshal(t reflect.Type, v reflect.Value) (data []byte, ok bool, err error) {
 	self := M.MarshalMethodName()
 	var res []reflect.Value
 	res, ok = TryCall(t, v, self, []reflect.Value{v})
@@ -70,7 +75,7 @@ func (M March) tryUnmarshal(t reflect.Type, v reflect.Value, data []byte) (ok bo
 }
 
 // tryReadFields attempts to call a custom input field getter method on the given type/value
-func (M March) tryReadFields(t reflect.Type, v reflect.Value, data []byte) (ok bool, fields map[string][]byte, err error) {
+func (M March) tryReadFields(t reflect.Type, v reflect.Value, data []byte) (fields map[string][]byte, ok bool, err error) {
 	self := M.ReadFieldsMethodName()
 	var res []reflect.Value
 	res, ok = TryCall(t, v, self, []reflect.Value{
@@ -102,7 +107,7 @@ func (M March) tryReadFields(t reflect.Type, v reflect.Value, data []byte) (ok b
 }
 
 // tryWriteFields attempts to call a custom output field setter method on the given type/value
-func (M March) tryWriteFields(t reflect.Type, v reflect.Value, fields map[string][]byte) (ok bool, data []byte, err error) {
+func (M March) tryWriteFields(t reflect.Type, v reflect.Value, fields map[string][]byte) (data []byte, ok bool, err error) {
 	self := M.WriteFieldsMethodName()
 	var res []reflect.Value
 	res, ok = TryCall(t, v, self, []reflect.Value{

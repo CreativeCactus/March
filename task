@@ -17,7 +17,7 @@ dgo(){ ## Dockerized go utility, in case go is not present
 }
 
 test(){ ## Run go tests
-    go test --cover -v ./...
+    go test --cover -v ./... "$@"
 }
 
 help(){ ## Print some information about this taskfile
