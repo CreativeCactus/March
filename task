@@ -20,6 +20,10 @@ test(){ ## Run go tests
     go test --cover -v ./... "$@"
 }
 
+fmt(){ ## Run gofmt -s on a file
+	gofmt -l -s -w .
+}
+
 help(){ ## Print some information about this taskfile
 	grep "##" task | grep -v dont_print_me
 }

@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 
 	march "github.com/CreativeCactus/March"
 )
 
 func TestUnmarshalStrictFail(t *testing.T) {
-	M := march.March{Tag: "March"}
+	M := march.March{Tag: "March", Strict: true}
 	data := `{
 		"embed":3,
 		"nest":{"nest":4},
@@ -24,27 +25,30 @@ func TestUnmarshalStrictFail(t *testing.T) {
 		"NotOnStruct":9
 	}`
 
-	// Test...
-	m := T{}
-	merr := M.Unmarshal([]byte(data), &m)
-	if merr == nil {
-		t.Fatalf("No error from march unmarshal, but expected one")
-	}
-
-	// Compare...
+	// Example error from JSON...
 	j := T{}
 	jerr := json.Unmarshal([]byte(data), &j)
 	if jerr == nil {
 		t.Fatalf("No error from json unmarshal, but expected one")
 	}
-	if jerr.Error() != merr.Error() {
+	expect := strings.Replace(jerr.Error(), "struct field T.m1", "value", 1)
+
+	// Test...
+	m := T{}
+	merr := M.Unmarshal([]byte(data), &m)
+	if merr == nil {
+		t.Fatalf("No error from march unmarshal, but expected something like:\n\t%s", expect)
+	}
+
+	// Compare...
+	if merr.Error() != expect {
 		t.Logf("\tMARCH: %s\n", merr.Error())
 		t.Logf("\tJSON : %s\n", jerr.Error())
 		t.Logf("Unmarshal error does not match json, do they look similar?")
 		return
 	}
 
-	t.Logf("Error matches that of json")
+	t.Logf("Error closely resembles that of json")
 }
 
 func TestUnmarshalPass(t *testing.T) {
@@ -83,16 +87,18 @@ func TestUnmarshalPass(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unable to marshal the JSON result: %s", err.Error())
 	}
-	if !bytes.Equal(js, s) {
+	if match, err := CompareJSON(js, s); err != nil {
+		t.Fatalf("Failed to compare marshalled JSON: %s", err.Error())
+	} else if !match {
 		t.Logf("JSON: %s\n", js)
 		t.Logf("Note: JSON returned %d bytes, March returned %d", len(js), len(s))
-		t.Fatalf("Unmarshalled string does not match json")
+		t.Fatalf("Unmarshalled string does not match JSON")
 	}
 }
 
 func TestUnmarshalStrictPassNoEmbedded(t *testing.T) {
 	M := march.March{Tag: "March"}
-	data := `{ "embeded": 3, "deep": 4 }`
+	data := `{ "embedded": 3, "deep": 4 }`
 
 	// Test...
 	v := Simple{}
@@ -107,7 +113,7 @@ func TestUnmarshalStrictPassNoEmbedded(t *testing.T) {
 	t.Logf("March: %s\n", s)
 
 	// Compare...
-	js := []byte(`{"deep":0,"embeded":0}`)
+	js := []byte(`{"deep":0,"embedded":0}`)
 	if !bytes.Equal(js, s) {
 		t.Logf("JSON: %s\n", js)
 		t.Logf("Note: JSON returned %d bytes, March returned %d", len(js), len(s))
@@ -160,7 +166,7 @@ func _TestUnmarshalMap(t *testing.T) {
 	M := march.March{Tag: "March", Verbose: true}
 	data := `{
 		"deep": 4,
-		"embeded":3,
+		"embedded":3,
 		"nest":{"nest":4},
 		"custom": "asd",
 		"int": 1,
@@ -191,19 +197,18 @@ func _TestUnmarshalMap(t *testing.T) {
 	}
 }
 
-func TestUnmarshalMapFail(t *testing.T) {
+func TestUnmarshalArrayFail(t *testing.T) {
 	M := march.March{Tag: "March", Verbose: true}
-	data := `{}`
+	data := `[]`
 	// Test...
-	v := map[string][]byte{}
+	v := []string{}
 	err := M.Unmarshal([]byte(data), &v)
-	if err == nil {
-		t.Fatalf("No error from march unmarshal, but expected one")
-	}
 	// Compare...
-	expect := `Default unmarshaller does not support non-struct types yet. Implement UnmarshalMarch or use a struct`
-	if err.Error() != expect {
-		t.Fatalf("Unexpected error from march unmarshal: %s", err.Error())
+	expect := `Default unmarshaller does not support array/slice types yet. Implement UnmarshalMarch or use a struct`
+	if err == nil {
+		t.Fatalf("No error from march unmarshal, expected:\n\t%s", expect)
+	} else if got := err.Error(); got != expect {
+		t.Fatalf("Error \n\t%s\n\tfrom march unmarshal, expected:\n\t%s", got, expect)
 	}
 }
 

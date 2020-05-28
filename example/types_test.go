@@ -1,6 +1,11 @@
 package example
 
-// TODO Test accross import boundaries by moving tests out
+import (
+	"bytes"
+	"encoding/json"
+)
+
+// TODO Test across import boundaries by moving tests out
 // TODO Test with more nulls
 // 	Raw    json.RawMessage          `March:"raw" json:"raw"`
 
@@ -28,11 +33,44 @@ type Simple struct {
 }
 type Embed struct {
 	Embed2
-	Embeded int32 `March:"embeded" json:"embeded"`
+	Embedded int32 `March:"embedded" json:"embedded"`
 }
 type Embed2 struct {
 	Deep int32 `March:"deep" json:"deep"`
 }
 type Nested struct {
 	Nested int16 `March:"nest" json:"nest"`
+}
+
+// CompareJSON is useful for checking the equality of json strings
+// when go might force an unpredictable field ordering.
+func CompareJSON(a, b []byte) (match bool, err error) {
+	A := map[string]json.RawMessage{}
+	B := map[string]json.RawMessage{}
+	if err = json.Unmarshal(a, &A); err != nil {
+		return
+	}
+	if err = json.Unmarshal(b, &B); err != nil {
+		return
+	}
+	for k := range union(A, B) {
+		if !bytes.Equal(A[k], B[k]) {
+			return
+		}
+	}
+	match = true
+	return
+}
+
+// union assigns fields from b to a and returns the result
+// without mutating a or b.
+func union(a, b map[string]json.RawMessage) (c map[string]json.RawMessage) {
+	c = map[string]json.RawMessage{}
+	for k, v := range a {
+		c[k] = v
+	}
+	for k, v := range b {
+		c[k] = v
+	}
+	return
 }

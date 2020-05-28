@@ -42,6 +42,7 @@ func FlagsContain(t, flag string) bool {
 }
 
 // IsValidTagName indicates whether the given tag name is valid.
+// Tag name is the first part of a value: `Key:"Name,Flag,Flag"`
 func IsValidTagName(tag string) bool {
 	// There is currently only one rule enforced by this library.
 	// The specification is unclear about tag keys, and JSON could potentially support any string key.
@@ -153,6 +154,9 @@ func NthField(v reflect.Value, n int, tagKey string) (f reflect.Value, fd FieldD
 	}
 	t := v.Type()
 	k := v.Kind()
+	if debug {
+		fmt.Printf("\t%dth Field of %s\n", n, k.String())
+	}
 	if k == reflect.Struct {
 		fd, ok = FieldDescriptorFromStructField(t.Field(n), tagKey)
 		return v.Field(n), fd, ok
@@ -169,7 +173,7 @@ func NthField(v reflect.Value, n int, tagKey string) (f reflect.Value, fd FieldD
 		f = v.MapIndex(key)
 		fd, ok = FieldDescriptorFromMap(v, key, tagKey)
 		///// TODO
-		return f, fd, true
+		return f, fd, ok
 	}
 	return
 }
@@ -217,9 +221,8 @@ func (V Values) Less(i, j int) bool {
 // KeyToBytes handles conversion from any reflect.Value which can be
 // a map key into a []byte for ordering.
 func KeyToBytes(v reflect.Value) []byte {
-	// If you followed a stack trace to get here,
-	// you are now cursed. Please implement support for
-	// a type to be freed.
+	// If you followed a stack trace to get here, you are now cursed.
+	// Please implement support for a type to be freed.
 
 	t := v.Type()
 	k := v.Kind()
@@ -277,4 +280,16 @@ func (V Values) ValueAt(n int) (vfield reflect.Value, ok bool) {
 	ok = false
 	return
 
+}
+
+// mapType is a helper for getting the key and value types of a map
+// ok is false if m is not a map.
+func mapType(m reflect.Value) (k, v reflect.Type, ok bool) {
+	if m.Kind() != reflect.Map {
+		return
+	}
+	k = m.Type().Key()
+	v = m.Type().Elem()
+	ok = true
+	return
 }

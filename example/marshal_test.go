@@ -18,14 +18,29 @@ func TestMarshal(t *testing.T) {
 	M := march.March{Tag: "March"}
 	m := T{
 		Embed: Embed{
-			Embeded: 10,
+			Embedded: 10,
 		},
 		Nest: Nested{
 			Nested: 10,
 		},
-		PtrS: getPtrS("test"),
 		Int:  10,
-		// TODO: WIP (duplicate S?)
+		PtrS: getPtrS("test"),
+		M1: map[string]int32{
+			"a": 123,
+		},
+		M2: []map[string]interface{}{
+			{
+				"a": 123,
+			},
+		},
+		S1:    "test1",
+		S2:    "test2",
+		priv:  "private",
+		None1: 1,
+		None2: 1,
+		None3: 1,
+		None4: 1,
+		None5: 1,
 	}
 
 	data, err := M.Marshal(m)
@@ -41,13 +56,12 @@ func TestMarshalCustom(t *testing.T) {
 	m := Custom{
 		Custom: 3,
 		Nested: []Custom{
-			Custom{
+			{
 				Custom: 1,
 				Nested: []Custom{
-					Custom{
+					{
 						Custom: 2,
-					},
-					Custom{
+					}, {
 						Custom: 2,
 					},
 				},

@@ -99,13 +99,12 @@ func Example() {
 	m := Custom{
 		Custom: 4,
 		Nested: []Custom{
-			Custom{
+			{
 				Custom: 8,
 				Nested: []Custom{
-					Custom{
+					{
 						Custom: 2,
-					},
-					Custom{
+					}, {
 						Custom: 2,
 					},
 				},

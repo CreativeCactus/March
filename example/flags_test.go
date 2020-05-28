@@ -66,8 +66,10 @@ func TestHoist(t *testing.T) {
 	}
 
 	want := `{"V":97,"R":{"test":"test"},"H2":10}`
-	if string(data) != want {
-		t.Logf("NOTE! It might be that the fields are in the wrong order due to disturbances in the PRNG.")
+
+	if match, err := CompareJSON(data, []byte(want)); err != nil {
+		t.Fatalf("Failed to compare marshalled JSON: %s", err.Error())
+	} else if !match {
 		t.Fatalf("Value mismatch: Got %s, Want %s", string(data), want)
 	}
 
@@ -138,13 +140,15 @@ func TestIdempotent(t *testing.T) {
 		var err error
 		data, err = M.Marshal(&v)
 		if err != nil {
-			t.Fatalf("March Unmarshal Error: %s", err.Error())
+			t.Fatalf("March Marshal Error: %s", err.Error())
 		}
 
-		if string(data) != result {
-			t.Logf("NOTE! It might be that the fields are in the wrong order due to disturbances in the PRNG.")
+		if match, err := CompareJSON(data, []byte(result)); err != nil {
+			t.Fatalf("Failed to compare marshalled JSON: %s", err.Error())
+		} else if !match {
 			t.Fatalf("Value mismatch: Got %s, Want %s", string(data), result)
 		}
+
 		t.Logf("March Marshalled:\n\t%#v\n", data)
 	}
 	// Second unmarshal
@@ -170,13 +174,15 @@ func TestIdempotent(t *testing.T) {
 		var err error
 		data, err = M.Marshal(&v)
 		if err != nil {
-			t.Fatalf("March Unmarshal Error: %s", err.Error())
+			t.Fatalf("March Marshal Error: %s", err.Error())
 		}
 
-		if string(data) != result {
-			t.Logf("NOTE! It might be that the fields are in the wrong order due to disturbances in the PRNG.")
+		if match, err := CompareJSON(data, []byte(result)); err != nil {
+			t.Fatalf("Failed to compare marshalled JSON: %s", err.Error())
+		} else if !match {
 			t.Fatalf("Value mismatch: Got %s, Want %s", string(data), result)
 		}
+
 		t.Logf("March Marshalled:\n\t%#v\n", data)
 	}
 
