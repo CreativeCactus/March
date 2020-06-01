@@ -90,3 +90,24 @@ func TestMarshalCustom(t *testing.T) {
 	t.Logf("March Re-Marshalled data: %s", string(data))
 
 }
+
+func TestMarshalSlice(t *testing.T) {
+	M := march.March{Tag: "March", Verbose: true}
+	v := []T{{Int: 1}, {Int: 2}}
+	{
+		data, err := M.Marshal(v)
+		// Compare...
+		if err != nil {
+			t.Fatalf("Error from march marshal:\n\t%s", err.Error())
+		}
+		expect := `[
+			{"int":1, "nest":{"nest":0},"custom":{"custom":0,"nested":null},"ptrs":null,"m1":null,"m2":null,"s":"","-":0},
+			{"int":2, "nest":{"nest":0},"custom":{"custom":0,"nested":null},"ptrs":null,"m1":null,"m2":null,"s":"","-":0}
+		]`
+		if match, err := CompareJSON(data, []byte(expect)); err != nil {
+			t.Fatalf("Failed to compare JSON: %s\n\tGot: %s", err.Error(), string(data))
+		} else if !match {
+			t.Fatalf("Expected %s,\n\tgot %s", expect, string(data))
+		}
+	}
+}

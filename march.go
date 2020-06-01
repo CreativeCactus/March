@@ -31,7 +31,7 @@ type March struct {
 // provides some helpers for unmarshalling at runtime.
 type RawUnmarshal struct {
 	Data  json.RawMessage
-	march March
+	March March
 }
 
 // MarshalFrom allows updating the underlying data via the marshaller
@@ -136,8 +136,9 @@ func (M March) Unmarshal(data []byte, v interface{}) (err error) {
 
 	// Check the type of v
 	V := reflect.ValueOf(v)
-	if V.Kind() != reflect.Ptr || V.IsNil() {
-		return fmt.Errorf("Value is not a nonzero pointer")
+	kind := V.Kind()
+	if kind != reflect.Ptr || V.IsNil() {
+		return fmt.Errorf("Value is not a nonzero pointer or slice")
 	}
 
 	// Check if there is a method to call instead

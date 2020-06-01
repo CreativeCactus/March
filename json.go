@@ -1,6 +1,7 @@
 package march
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -15,10 +16,26 @@ func (M March) MarshalJSON(v interface{}) (data []byte, err error) {
 	// Check the target type
 	target := reflect.ValueOf(v)
 	V := target
-	if target.Kind() == reflect.Ptr {
-		// err = fmt.Errorf("Value is not a pointer")
+	kind := target.Kind()
+	if kind == reflect.Ptr {
 		V = target.Elem()
-		// return
+		// TODO Mark a recursive call to allow arbitrary depths of pointers
+	}
+	if kind == reflect.Slice || kind == reflect.Array {
+		datas := [][]byte{}
+		nested := []byte{}
+		for i := 0; i < target.Len(); i++ {
+			nested, err = M.Marshal(target.Index(i).Interface())
+			if err != nil {
+				return
+			}
+			datas = append(datas, nested)
+		}
+		data = []byte("[")
+		data = append(data, bytes.Join(datas, []byte(","))...)
+		data = append(data, ']')
+
+		return
 	}
 
 	output := map[string][]byte{}
@@ -134,6 +151,11 @@ func (M March) UnmarshalJSON(data []byte, v interface{}) (err error) {
 	didUnmarshal := []string{}
 	remainsReceiver := []reflect.Value{}
 	V := reflect.ValueOf(v)
+	T := reflect.TypeOf(v)
+
+	if T.Kind() != reflect.Ptr {
+		return fmt.Errorf("Must be pointer")
+	}
 
 	target := V.Elem()
 	if M.Debug {
@@ -142,14 +164,28 @@ func (M March) UnmarshalJSON(data []byte, v interface{}) (err error) {
 
 	// TODO modularize these blocks and produce a better model for Un/Marshaller implementation
 	// EG. the value/struct distinction.
-	{ // Sanity check
-
+	{ // Sanity check and type switching
 		switch target.Type().Kind() {
 		case reflect.Struct: // Carry on, the rest of the function is for structs
-		case reflect.Map:
-			// return fmt.Errorf("Default unmarshaller does not support map types yet. Implement %s or use a struct", M.UnmarshalMethodName())
-		case reflect.Array, reflect.Slice:
-			return fmt.Errorf("Default unmarshaller does not support array/slice types yet. Implement %s or use a struct", M.UnmarshalMethodName())
+		case reflect.Map: // Carry on, the rest of the function should work for maps
+		case reflect.Array:
+			return fmt.Errorf("Default unmarshaller does not support array types. Use a slice")
+		case reflect.Slice:
+			elems := []json.RawMessage{}
+			if err = json.Unmarshal(data, &elems); err != nil {
+				return fmt.Errorf("Failed to unmarshal slice: %s%w", err.Error(), err)
+			}
+
+			//(Re)initialize the slice
+			elemType := target.Type().Elem()
+			x := reflect.New((T.Elem()))
+			for _, e := range elems {
+				elem := reflect.New(elemType).Elem()
+				_, err = M.UnmarshalValueJSON(elemType, elem, (e))
+				x.Elem().Set(reflect.Append(x.Elem(), elem))
+			}
+			target.Set(x.Elem())
+			return
 		default: // Perform some primitive unmarshalling
 			_, err = M.UnmarshalValueJSON(target.Type(), target, data)
 			return
@@ -206,7 +242,7 @@ func (M March) UnmarshalJSON(data []byte, v interface{}) (err error) {
 			}
 
 			{ // Unmarshal onto a new value of the same type as field, then assign it
-				ok, err = M.UnmarshalValueJSON(tfield.Type, vfield, ifield)
+				_, err = M.UnmarshalValueJSON(tfield.Type, vfield, ifield)
 				if err != nil && M.Verbose {
 					fmt.Printf("Error Unmarshalling %s: %s", tfield.TagName, err.Error())
 				}
@@ -268,7 +304,7 @@ func (M March) UnmarshalJSON(data []byte, v interface{}) (err error) {
 // custom is true if a custom unmarshaller was used.
 func (M March) UnmarshalValueJSON(t reflect.Type, v reflect.Value, data []byte) (custom bool, err error) {
 	fv := reflect.New(t).Interface()
-	custom, err = tryUnmarshal(t, v, data, M.UnmarshalMethodName())
+	custom, err = tryUnmarshal(t, reflect.ValueOf(fv), data, M.UnmarshalMethodName())
 
 	if err == nil && !custom {
 		err = json.Unmarshal(data, &fv)

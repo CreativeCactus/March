@@ -103,8 +103,9 @@ func TestBoth(t *testing.T) {
 		t.Fatalf("March Unmarshal Error: %s", err.Error())
 	}
 
-	if string(data) != result {
-		t.Logf("NOTE! It might be that the fields are in the wrong order due to disturbances in the PRNG.")
+	if match, err := CompareJSON(data, []byte(result)); err != nil {
+		t.Fatalf("Failed to compare JSON: %s", err.Error())
+	} else if !match {
 		t.Fatalf("Value mismatch: Got %s, Want %s", string(data), result)
 	}
 

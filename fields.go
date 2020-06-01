@@ -101,7 +101,7 @@ func FieldDescriptorFromSlice(sf reflect.Value, key int, tagKey string) (fd Fiel
 		ok = false
 		return
 	}
-	if key < 0 || key >= t.Len() {
+	if key < 0 || key >= sf.Len() {
 		ok = false
 		return
 	}

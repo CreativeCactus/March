@@ -201,14 +201,62 @@ func TestUnmarshalArrayFail(t *testing.T) {
 	M := march.March{Tag: "March", Verbose: true}
 	data := `[]`
 	// Test...
-	v := []string{}
+	var v [2]string
 	err := M.Unmarshal([]byte(data), &v)
 	// Compare...
-	expect := `Default unmarshaller does not support array/slice types yet. Implement UnmarshalMarch or use a struct`
+	expect := `Default unmarshaller does not support array types. Use a slice`
 	if err == nil {
 		t.Fatalf("No error from march unmarshal, expected:\n\t%s", expect)
 	} else if got := err.Error(); got != expect {
 		t.Fatalf("Error \n\t%s\n\tfrom march unmarshal, expected:\n\t%s", got, expect)
+	}
+}
+
+func TestUnmarshalSlice(t *testing.T) {
+	M := march.March{Tag: "March", Verbose: true}
+	data := `[{"int":1},{"int":2}]`
+	{ // Test []*
+		v := []*T{}
+		err := M.Unmarshal([]byte(data), &v)
+		// Compare...
+		if err != nil {
+			t.Fatalf("Error from march unmarshal:\n\t%s", err.Error())
+		}
+		if got := len(v); got != 2 {
+			t.Fatalf("Expected %d elements, got %d", 2, got)
+		}
+		if got := v[0].Int; got != 1 {
+			t.Fatalf("Expected first element: %d, got %d", 1, got)
+		}
+	}
+	{ // Test []
+		v := []T{}
+		err := M.Unmarshal([]byte(data), &v)
+		// Compare...
+		if err != nil {
+			t.Fatalf("Error from march unmarshal:\n\t%s", err.Error())
+		}
+		if got := len(v); got != 2 {
+			t.Fatalf("Expected %d elements, got %d", 2, got)
+		}
+		if got := v[0].Int; got != 1 {
+			t.Fatalf("Expected first element: %d, got %d", 1, got)
+		}
+	}
+	{ // Test *[]
+		vv := []T{}
+		v := &vv
+		err := M.Unmarshal([]byte(data), &v)
+		// Compare...
+		if err != nil {
+			t.Fatalf("Error from march unmarshal:\n\t%s", err.Error())
+		}
+		if got := len(*v); got != 2 {
+			t.Fatalf("Expected %d elements, got %d", 2, got)
+		}
+		if got := (*v)[0].Int; got != 1 {
+			t.Fatalf("Expected first element: %d, got %d", 1, got)
+		}
 	}
 }
 
@@ -228,7 +276,7 @@ func (CustomReadFields) ReadFieldsMarch(data []byte) (fields map[string][]byte, 
 
 func TestUnmarshalReadFields(t *testing.T) {
 	M := march.March{Tag: "March", Verbose: true}
-	data := `{...}`
+	data := `{...}` // CustomReadFields.ReadFieldsMarch will interpret this as 5 single-byte fields
 
 	// Test...
 	v := CustomReadFields{}
@@ -236,6 +284,7 @@ func TestUnmarshalReadFields(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unable to march unmarshal: %s", err.Error())
 	}
+
 	t.Logf("March: %#v\n", v)
 }
 

@@ -1,8 +1,8 @@
 package example
 
 import (
-	"bytes"
 	"encoding/json"
+	"reflect"
 )
 
 // TODO Test across import boundaries by moving tests out
@@ -45,20 +45,15 @@ type Nested struct {
 // CompareJSON is useful for checking the equality of json strings
 // when go might force an unpredictable field ordering.
 func CompareJSON(a, b []byte) (match bool, err error) {
-	A := map[string]json.RawMessage{}
-	B := map[string]json.RawMessage{}
+	var A interface{}
+	var B interface{}
 	if err = json.Unmarshal(a, &A); err != nil {
 		return
 	}
 	if err = json.Unmarshal(b, &B); err != nil {
 		return
 	}
-	for k := range union(A, B) {
-		if !bytes.Equal(A[k], B[k]) {
-			return
-		}
-	}
-	match = true
+	match = reflect.DeepEqual(A, B)
 	return
 }
 
