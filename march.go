@@ -36,7 +36,7 @@ type RawUnmarshal struct {
 
 // MarshalFrom allows updating the underlying data via the marshaller
 func (ru RawUnmarshal) MarshalFrom(v interface{}) error {
-	data, err := ru.march.Marshal(v)
+	data, err := ru.March.Marshal(v)
 	if err != nil {
 		return err
 	}
@@ -46,7 +46,7 @@ func (ru RawUnmarshal) MarshalFrom(v interface{}) error {
 
 // UnmarshalTo allows convenient unmarshalling to a given type
 func (ru RawUnmarshal) UnmarshalTo(v interface{}) error {
-	return ru.march.Unmarshal(ru.Data, v)
+	return ru.March.Unmarshal(ru.Data, v)
 }
 
 // MarshalJSON ensures consistent behavior with json.RawMessage

@@ -354,7 +354,7 @@ func toRawMap(input map[string][]byte, m March) (output map[string]RawUnmarshal)
 	for k, v := range input {
 		output[k] = RawUnmarshal{
 			Data:  v,
-			march: m,
+			March: m,
 		}
 	}
 	return
