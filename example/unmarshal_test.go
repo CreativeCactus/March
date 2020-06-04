@@ -51,17 +51,16 @@ func TestUnmarshalStrictFail(t *testing.T) {
 	t.Logf("Error closely resembles that of json")
 }
 
-func TestUnmarshalPass(t *testing.T) {
+func TestUnmarshal(t *testing.T) {
 	M := march.March{Tag: "March"}
 	data := `{
 		"nest":{"nest":4},
-		"custom": "abc",
+		"custom": "a[]",
 		"int": 1,
 		"ptrs":["~"],
 		"m1":{"b":123,"c":99999, "d": null},
 		"m2": [{"x":"y"}],
-		"s1": "A",
-		"s2":null,
+		"s": "A",
 		"NotOnStruct":9
 	}`
 
@@ -71,32 +70,37 @@ func TestUnmarshalPass(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unable to march unmarshal: %s", err.Error())
 	}
-	s, err := json.MarshalIndent(v, "", "  ")
+	s, err := M.Marshal(v)
 	if err != nil {
 		t.Fatalf("Unable to marshal the result: %s", err.Error())
 	}
 	t.Logf("March: %s\n", s)
 
-	// Compare...
-	x := T{}
-	err = json.Unmarshal([]byte(data), &x)
-	if err != nil {
-		t.Fatalf("Unable to json unmarshal: %s", err.Error())
-	}
-	js, err := json.MarshalIndent(x, "", "  ")
-	if err != nil {
-		t.Fatalf("Unable to marshal the JSON result: %s", err.Error())
-	}
+	// Compare... Note that the last line is the only change
+	// There is no NotOnStruct and - is marshaled
+	// Also, .m2.d is represented as 0, not null
+	js := []byte(`{
+		"nest":{"nest":4},
+		"custom": "a[]",
+		"int": 1,
+		"ptrs":["~"],
+		"m1":{"b":123,"c":99999, "d": 0},
+		"m2": [{"x":"y"}],
+		"s": "A",
+		"-":0
+	}`)
 	if match, err := CompareJSON(js, s); err != nil {
-		t.Fatalf("Failed to compare marshalled JSON: %s", err.Error())
+		t.Fatalf("Failed to compare marshaled JSON: %s", err.Error())
 	} else if !match {
 		t.Logf("JSON: %s\n", js)
 		t.Logf("Note: JSON returned %d bytes, March returned %d", len(js), len(s))
-		t.Fatalf("Unmarshalled string does not match JSON")
+		t.Fatalf("Unmarshaled string does not match JSON")
 	}
 }
 
-func TestUnmarshalStrictPassNoEmbedded(t *testing.T) {
+// TestUnmarshalStrictNoEmbedded confirms that embedded fields CANNOT
+// be unmarshaled onto.
+func TestUnmarshalStrictNoEmbedded(t *testing.T) {
 	M := march.March{Tag: "March"}
 	data := `{ "embedded": 3, "deep": 4 }`
 
@@ -114,14 +118,17 @@ func TestUnmarshalStrictPassNoEmbedded(t *testing.T) {
 
 	// Compare...
 	js := []byte(`{"deep":0,"embedded":0}`)
-	if !bytes.Equal(js, s) {
+	if match, err := CompareJSON(js, s); err != nil {
+		t.Fatalf("Failed to compare JSON: %s", err.Error())
+
+	} else if !match {
 		t.Logf("JSON: %s\n", js)
 		t.Logf("Note: JSON returned %d bytes, March returned %d", len(js), len(s))
-		t.Fatalf("Unmarshalled string does not match expectation")
+		t.Fatalf("Unmarshaled string does not match expectation")
 	}
 }
 
-func TestUnmarshalRelaxPass(t *testing.T) {
+func TestUnmarshalRelax(t *testing.T) {
 	M := march.March{Tag: "March", Verbose: true}
 	data := `{
 		"custom": "asd",
@@ -129,6 +136,7 @@ func TestUnmarshalRelaxPass(t *testing.T) {
 		"ptrs":["~"],
 		"m1":{"b":123,"c":99, "d": null},
 		"m2": [{"x":"y"}],
+		"s": "both",
 		"NotOnStruct":9
 	}` // m1 fails with overflows and strings
 	// Does not work with nested fields, nor embedded
@@ -158,7 +166,7 @@ func TestUnmarshalRelaxPass(t *testing.T) {
 	}
 	if !bytes.Equal([]byte(js), s) {
 		t.Logf("JSON: %s\n", js)
-		t.Fatalf("Unmarshalled string does not match json")
+		t.Fatalf("Unmarshaled string does not match json")
 	}
 }
 
@@ -193,7 +201,7 @@ func _TestUnmarshalMap(t *testing.T) {
 	js := `NOJSON`
 	if !bytes.Equal([]byte(js), s) {
 		t.Logf("JSON: %s\n", js)
-		t.Fatalf("Unmarshalled string does not match json")
+		t.Fatalf("Unmarshaled string does not match json")
 	}
 }
 
@@ -204,7 +212,7 @@ func TestUnmarshalArrayFail(t *testing.T) {
 	var v [2]string
 	err := M.Unmarshal([]byte(data), &v)
 	// Compare...
-	expect := `Default unmarshaller does not support array types. Use a slice`
+	expect := `Default JSON unmarshaler does not support array types. Use a slice`
 	if err == nil {
 		t.Fatalf("No error from march unmarshal, expected:\n\t%s", expect)
 	} else if got := err.Error(); got != expect {
@@ -307,4 +315,34 @@ func TestUnmarshalMap(t *testing.T) {
 		t.Fatalf("Unable to march unmarshal: %s", err.Error())
 	}
 	t.Logf("March: %#v\n", v)
+}
+
+func TestUnmarshalComposite(t *testing.T) {
+	M := march.March{Tag: "March", Strict: true}
+	v := Composite{}
+
+	{ // TODO Fix this double quoting issue
+		data := `{"time":"2020-02-02T06:06:60+25:00"}`
+		err := M.Unmarshal([]byte(data), &v)
+		expect := `parsing time ""2020-02-02T06:06:60+25:00"": second out of range`
+		if err == nil {
+			t.Fatalf("No error from march unmarshal, expected:\n\t%s", expect)
+		} else if got := err.Error(); got != expect {
+			t.Fatalf("Error \n\t%s\n\tfrom march unmarshal, expected:\n\t%s", got, expect)
+		}
+		t.Logf("March error as expected: %s\n", err.Error())
+	}
+
+	{
+		data := `{"time":"2020-02-02T06:06:06+00:00"}`
+		err := M.Unmarshal([]byte(data), &v)
+		got := (v.Time.String())
+		expect := "2020-02-02 06:06:06 +0000 +0000"
+		if err != nil {
+			t.Fatalf("Unable to march unmarshal: %s", err.Error())
+		} else if got != expect {
+			t.Fatalf("Error \n\t%s\n\tfrom march unmarshal, expected:\n\t%s", got, expect)
+		}
+		t.Logf("March parsed time as expected: %s\n", got)
+	}
 }

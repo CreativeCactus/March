@@ -1,7 +1,9 @@
 package example
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
 	march "github.com/CreativeCactus/March"
 )
@@ -48,11 +50,11 @@ func TestMarshal(t *testing.T) {
 		t.Fatalf("March Marshal Error: %s", err.Error())
 	}
 
-	t.Logf("March Marshalled data: %s", string(data))
+	t.Logf("March Marshaled data: %s", string(data))
 }
 
 func TestMarshalCustom(t *testing.T) {
-	M := march.March{Tag: "March", Debug: true}
+	M := march.March{Tag: "March"}
 	m := Custom{
 		Custom: 3,
 		Nested: []Custom{
@@ -74,7 +76,7 @@ func TestMarshalCustom(t *testing.T) {
 		t.Fatalf("March Marshal Error: %s", err.Error())
 	}
 
-	t.Logf("March Marshalled data: %s", string(data))
+	t.Logf("March Marshaled data: %s", string(data))
 
 	m = Custom{}
 	err = M.Unmarshal(data, &m)
@@ -87,7 +89,7 @@ func TestMarshalCustom(t *testing.T) {
 		t.Fatalf("March Re-Marshal Error: %s", err.Error())
 	}
 
-	t.Logf("March Re-Marshalled data: %s", string(data))
+	t.Logf("March Re-Marshaled data: %s", string(data))
 
 }
 
@@ -101,8 +103,8 @@ func TestMarshalSlice(t *testing.T) {
 			t.Fatalf("Error from march marshal:\n\t%s", err.Error())
 		}
 		expect := `[
-			{"int":1, "nest":{"nest":0},"custom":{"custom":0,"nested":null},"ptrs":null,"m1":null,"m2":null,"s":"","-":0},
-			{"int":2, "nest":{"nest":0},"custom":{"custom":0,"nested":null},"ptrs":null,"m1":null,"m2":null,"s":"","-":0}
+			{"int":1, "nest":{"nest":0},"custom":null,"ptrs":null,"m1":null,"m2":[],"s":"","-":0},
+			{"int":2, "nest":{"nest":0},"custom":null,"ptrs":null,"m1":null,"m2":[],"s":"","-":0}
 		]`
 		if match, err := CompareJSON(data, []byte(expect)); err != nil {
 			t.Fatalf("Failed to compare JSON: %s\n\tGot: %s", err.Error(), string(data))
@@ -110,4 +112,24 @@ func TestMarshalSlice(t *testing.T) {
 			t.Fatalf("Expected %s,\n\tgot %s", expect, string(data))
 		}
 	}
+}
+
+func TestMarshalComposite(t *testing.T) {
+	M := march.March{Tag: "March", Strict: true}
+	expect := "2020-02-02T01:02:03Z"
+	testTime, err := time.Parse(time.RFC3339, expect)
+	if err != nil {
+		panic(err)
+	}
+	v := Composite{Time: testTime}
+	expect = fmt.Sprintf(`{"time":"%s"}`, expect)
+
+	data, err := M.Marshal(v)
+	if err != nil {
+		t.Fatalf("Unable to march unmarshal: %s", err.Error())
+	} else if string(data) != expect {
+		t.Fatalf("Error \n\t%s\n\tfrom march unmarshal, expected:\n\t%s", string(data), expect)
+	}
+	t.Logf("March marshaled time as expected: %s\n", string(data))
+
 }

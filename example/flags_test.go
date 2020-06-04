@@ -45,7 +45,7 @@ func TestRemains(t *testing.T) {
 		t.Fatalf("Value mismatch: Got %s, Want %s", string(v.Remains["R"]), want)
 	}
 
-	t.Logf("March Unmarshalled: %#v\n", v)
+	t.Logf("March Unmarshaled: %#v\n", v)
 }
 
 func TestHoist(t *testing.T) {
@@ -68,12 +68,12 @@ func TestHoist(t *testing.T) {
 	want := `{"V":97,"R":{"test":"test"},"H2":10}`
 
 	if match, err := CompareJSON(data, []byte(want)); err != nil {
-		t.Fatalf("Failed to compare marshalled JSON: %s", err.Error())
+		t.Fatalf("Failed to compare marshaled JSON: %s", err.Error())
 	} else if !match {
 		t.Fatalf("Value mismatch: Got %s, Want %s", string(data), want)
 	}
 
-	t.Logf("March Marshalled: %#v\n", data)
+	t.Logf("March Marshaled: %#v\n", data)
 }
 
 func TestBoth(t *testing.T) {
@@ -96,7 +96,7 @@ func TestBoth(t *testing.T) {
 	if want := `"remains"`; string(v.Both["Z"]) != want {
 		t.Fatalf("Value mismatch: Got %s, Want %s", string(v.Both["Z"]), want)
 	}
-	t.Logf("March Unmarshalled: %#v\n", v)
+	t.Logf("March Unmarshaled: %#v\n", v)
 
 	data, err = M.Marshal(&v)
 	if err != nil {
@@ -109,7 +109,7 @@ func TestBoth(t *testing.T) {
 		t.Fatalf("Value mismatch: Got %s, Want %s", string(data), result)
 	}
 
-	t.Logf("March Marshalled: %#v\n", data)
+	t.Logf("March Marshaled: %#v\n", data)
 }
 
 func TestIdempotent(t *testing.T) {
@@ -133,7 +133,7 @@ func TestIdempotent(t *testing.T) {
 		if want := `"remains"`; string(v.Both["Z"]) != want {
 			t.Fatalf("Value mismatch: Got %s, Want %s", string(v.Both["R"]), want)
 		}
-		t.Logf("March Unmarshalled:\n\t%#v\n", v)
+		t.Logf("March Unmarshaled:\n\t%#v\n", v)
 	}
 
 	// First marshal
@@ -145,12 +145,12 @@ func TestIdempotent(t *testing.T) {
 		}
 
 		if match, err := CompareJSON(data, []byte(result)); err != nil {
-			t.Fatalf("Failed to compare marshalled JSON: %s", err.Error())
+			t.Fatalf("Failed to compare marshaled JSON: %s", err.Error())
 		} else if !match {
 			t.Fatalf("Value mismatch: Got %s, Want %s", string(data), result)
 		}
 
-		t.Logf("March Marshalled:\n\t%#v\n", data)
+		t.Logf("March Marshaled:\n\t%#v\n", data)
 	}
 	// Second unmarshal
 	{
@@ -167,7 +167,7 @@ func TestIdempotent(t *testing.T) {
 		if want := `"remains"`; string(v.Both["Z"]) != want {
 			t.Fatalf("Value mismatch: Got %s, Want %s", string(v.Both["R"]), want)
 		}
-		t.Logf("March Unmarshalled:\n\t%#v\n", v)
+		t.Logf("March Unmarshaled:\n\t%#v\n", v)
 	}
 
 	// Second marshal
@@ -179,12 +179,12 @@ func TestIdempotent(t *testing.T) {
 		}
 
 		if match, err := CompareJSON(data, []byte(result)); err != nil {
-			t.Fatalf("Failed to compare marshalled JSON: %s", err.Error())
+			t.Fatalf("Failed to compare marshaled JSON: %s", err.Error())
 		} else if !match {
 			t.Fatalf("Value mismatch: Got %s, Want %s", string(data), result)
 		}
 
-		t.Logf("March Marshalled:\n\t%#v\n", data)
+		t.Logf("March Marshaled:\n\t%#v\n", data)
 	}
 
 }

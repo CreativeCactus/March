@@ -3,16 +3,16 @@ package example
 import (
 	"encoding/json"
 	"reflect"
+	"time"
 )
 
-// TODO Test across import boundaries by moving tests out
 // TODO Test with more nulls
 // 	Raw    json.RawMessage          `March:"raw" json:"raw"`
 
 type T struct {
 	Embed
 	Nest   Nested                   `March:"nest" json:"nest"`
-	Custom Custom                   `March:"custom" json:"custom"`
+	Custom *Custom                  `March:"custom" json:"custom"`
 	Int    int                      `March:"int" json:"int"`
 	PtrS   **[]**string             `March:"ptrs" json:"ptrs"`
 	M1     map[string]int32         `March:"m1" json:"m1"`
@@ -26,6 +26,10 @@ type T struct {
 	None3 int    `March: json:`
 	None4 int    `March json`
 	None5 int
+}
+
+type Composite struct {
+	Time time.Time `March:"time"`
 }
 
 type Simple struct {

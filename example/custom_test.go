@@ -1,6 +1,7 @@
 package example
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"strconv"
@@ -25,6 +26,7 @@ func (c *Custom) UnmarshalMarch(data []byte) error {
 	depth := 0
 	c.Custom = 0
 	nested := [][]byte{}
+	data = bytes.Trim(data, `"`)
 	for _, b := range data {
 		if b == '[' {
 			depth++
@@ -69,7 +71,8 @@ func (c *Custom) MarshalMarch() (data []byte, err error) {
 	for i := range data {
 		data[i] = 'a'
 	}
-	data = append(data, '[')
+
+	data = []byte(fmt.Sprintf(`"%s[`, data))
 	for i, v := range c.Nested {
 		// TODO: Implement this for interfaces
 		// And use the tryMarshal pattern here
@@ -81,9 +84,10 @@ func (c *Custom) MarshalMarch() (data []byte, err error) {
 		}
 		data = append(data, '#')
 		data = append(data, []byte(fmt.Sprintf("%d", i))...)
-		data = append(data, more...)
+		data = append(data, bytes.Trim(more, `"`)...)
 	}
 	data = append(data, ']')
+	data = append(data, '"')
 	return
 }
 
@@ -94,7 +98,7 @@ func (c *Custom) MarshalJSON() (data []byte, err error) {
 }
 
 // Example shows an example of using March
-func Example() {
+func ExampleCustomMarch() {
 	M := march.March{Tag: "March"}
 	m := Custom{
 		Custom: 4,
@@ -117,7 +121,7 @@ func Example() {
 		log.Fatalf("March Marshal Error: %s", err.Error())
 	}
 
-	fmt.Printf("March    Marshalled data: %s\n", string(data))
+	fmt.Printf("March    Marshaled data: %s\n", string(data))
 
 	m = Custom{}
 	err = M.Unmarshal(data, &m)
@@ -130,8 +134,8 @@ func Example() {
 		log.Fatalf("March Re-Marshal Error: %s", err.Error())
 	}
 
-	fmt.Printf("March Re-Marshalled data: %s\n", string(data))
+	fmt.Printf("March Re-Marshaled data: %s\n", string(data))
 	// Output:
-	// March    Marshalled data: aaaa[#0aaaaaaaa[#0aa[]#1aa[]]]
-	// March Re-Marshalled data: aaaa[#0aaaaaaaa[#0aa[]#1aa[]]]
+	// March    Marshaled data: "aaaa[#0aaaaaaaa[#0aa[]#1aa[]]]"
+	// March Re-Marshaled data: "aaaa[#0aaaaaaaa[#0aa[]#1aa[]]]"
 }

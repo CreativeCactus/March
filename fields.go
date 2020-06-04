@@ -154,9 +154,6 @@ func NthField(v reflect.Value, n int, tagKey string) (f reflect.Value, fd FieldD
 	}
 	t := v.Type()
 	k := v.Kind()
-	if debug {
-		fmt.Printf("\t%dth Field of %s\n", n, k.String())
-	}
 	if k == reflect.Struct {
 		fd, ok = FieldDescriptorFromStructField(t.Field(n), tagKey)
 		return v.Field(n), fd, ok
@@ -172,7 +169,7 @@ func NthField(v reflect.Value, n int, tagKey string) (f reflect.Value, fd FieldD
 		// https://golang.org/ref/spec#Comparison_operators
 		f = v.MapIndex(key)
 		fd, ok = FieldDescriptorFromMap(v, key, tagKey)
-		///// TODO
+		// TODO
 		return f, fd, ok
 	}
 	return

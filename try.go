@@ -46,10 +46,33 @@ func (M March) WriteFieldsMethodName() string {
 	return fmt.Sprintf("WriteFields%s", M.MethodSuffix())
 }
 
+// ptr returns a reflect.Value containing a pointer to the given Values content
+// eg. v => *v, *v => **v
+func ptr(v reflect.Value) reflect.Value {
+	pt := reflect.PtrTo(v.Type())
+	pv := reflect.New(pt.Elem())
+	pv.Elem().Set(v)
+	return pv
+}
+
 // tryMarshal attempts to call a custom unmarshal method on the given type/value
 func tryMarshal(t reflect.Type, v reflect.Value, method string) (data []byte, ok bool, err error) {
+	if v.IsZero() && v.Kind() == reflect.Ptr {
+		ok = false
+		return
+	}
+	data, ok, err = callMarshal(t, v, method, []reflect.Value{v})
+	if err != nil || ok {
+		return
+	}
+	V := reflect.New(v.Type())
+	T := V.Type()
+	V.Elem().Set(v)
+	return callMarshal(T, V, method, []reflect.Value{V})
+}
+func callMarshal(t reflect.Type, v reflect.Value, method string, args []reflect.Value) (data []byte, ok bool, err error) {
 	var res []reflect.Value
-	res, ok = TryCall(t, v, method, []reflect.Value{v})
+	res, ok = TryCall(t, v, method, args)
 	if !ok {
 		return
 	}
@@ -75,6 +98,7 @@ func tryMarshal(t reflect.Type, v reflect.Value, method string) (data []byte, ok
 }
 
 // tryUnmarshal attempts to call a custom unmarshal method on the given type/value
+// It will first check for a the specified method on *v and create a new pointer to v if needed.
 func tryUnmarshal(t reflect.Type, v reflect.Value, data []byte, method string) (ok bool, err error) {
 	return tryCallAndGetError(t, v, method, []reflect.Value{
 		v,
@@ -174,11 +198,7 @@ func tryCallAndGetError(t reflect.Type, v reflect.Value, method string, args []r
 func TryCall(t reflect.Type, v reflect.Value, method string, args []reflect.Value) (res []reflect.Value, ok bool) {
 	var m reflect.Method
 	m, ok = t.MethodByName(method)
-	// fmt.Printf("TryCall: %s.%s, %t (%d total)\n", t.Name(), method, ok, t.NumMethod())
-
 	if ok {
-		// fmt.Printf("TryCall: Call: %d args\n", len(args))
-
 		res = m.Func.Call(args)
 	}
 	return
