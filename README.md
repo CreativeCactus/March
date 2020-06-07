@@ -78,6 +78,10 @@ See `./task test` (using `./task type test` in bash) to generate coverage.
 
 For anything serious, be sure to use [good `recover` practices](https://blog.golang.org/defer-panic-and-recover).
 
+## Bugs
+
+`UnmarshalTo` will crash if given an `interface{}` or a complex type containing it (eg. `[]interface{}`).
+
 ## Support
 
 March itself can support any type.
@@ -96,10 +100,15 @@ Other types will be checked for methods or passed directly to `json.Unmarshal`.
 
 Some flags have specific requirements, see below.
 
+### JSON Fallback
+
 **NOTE:** By default, the default Un/Marshaler methods (*AsJSON) will automatically
 use Un/MarshalJSON methods if they exist on the given value or a pointer to it.
 This is used to give expected functionality when using types like `time.Time`.
 This can be disabled using the `NoMarshalJSON` and `NoUnmarshalJSON` options.
+
+Until this is supported by flags at the field level, this will prevent
+calls from `encoding/json` calling March methods (because it would invite recursion).
 
 ### Nested structs
 

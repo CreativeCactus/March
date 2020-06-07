@@ -23,6 +23,13 @@ func (M March) UnmarshalAsJSON(data []byte, v interface{}) (err error) {
 		return fmt.Errorf("Must be pointer")
 	}
 
+	{ // Check if it is a known hardcoded type
+		if T == reflect.TypeOf(RawUnmarshal{}) {
+			V.Set(reflect.ValueOf(toRaw(data, M)))
+			return
+		}
+	}
+
 	if !M.NoUnmarshalJSON { // No matter what V is, if it already has an UnmarshalJSON method
 		// Then use that instead of the default march JSON unmarshaler.
 		// First, check *T, since having a Un/Marshal methods on the base type is rare
@@ -277,10 +284,15 @@ func toJSONMap(input map[string][]byte) (output map[string]json.RawMessage) {
 func toRawMap(input map[string][]byte, m March) (output map[string]RawUnmarshal) {
 	output = map[string]RawUnmarshal{}
 	for k, v := range input {
-		output[k] = RawUnmarshal{
-			Bytes: v,
-			March: m,
-		}
+		output[k] = toRaw(v, m)
 	}
 	return
+}
+
+//toRaw is just a type casting helper to use []byte as RawUnmarshal
+func toRaw(input []byte, m March) (output RawUnmarshal) {
+	return RawUnmarshal{
+		Bytes: input,
+		March: m,
+	}
 }
