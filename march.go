@@ -80,11 +80,8 @@ const (
 // If the underlying value is malformed JSON, it will return JSONInvalid
 func (ru RawUnmarshal) TypeOfJSON() (t JSONType) {
 	var v interface{}
-	err = json.Unmarshal(ru.Bytes, &v)
-
-	if err != nil {
-		err = fmt.Errorf("Unmarshal error: %w", err)
-		return
+	if err := json.Unmarshal(ru.Bytes, &v); err != nil {
+		return JSONInvalid
 	}
 
 	switch v.(type) {

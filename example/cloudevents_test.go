@@ -60,9 +60,9 @@ func UnmarshalRemarshalCloudEvent(m march.March, t *testing.T, example string) {
 
 		// Note that data is used as a receiving interface later, so type matters
 		data := string(ce.Data.Bytes)
-		jt, err := ce.Data.TypeOfJSON()
-		if err != nil {
-			t.Fatalf("Failed to determine data type: %s", err.Error())
+		jt := ce.Data.TypeOfJSON()
+		if jt == march.JSONInvalid {
+			t.Fatalf("Failed to determine data type of %s", string(ce.Data.Bytes))
 		}
 
 		t.Logf("ce.Data has type: %s", string(jt))
