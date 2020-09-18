@@ -23,6 +23,7 @@ type March struct {
 	Strict             bool                              // Determines whether a failure to un/marshal a field results in a failure overall
 	DefaultMarshaler   func(interface{}) ([]byte, error) // Override the default marshaler for types with no custom marshal function
 	DefaultUnmarshaler func([]byte, interface{}) error   // Override the default unmarshaler for types with no custom unmarshal function
+	Extensions         map[string]Extension              // Functions which MAY be called by encoders if the flag string is present on the field
 }
 
 // RawUnmarshal is a wrapper around json.RawMessage which
@@ -55,6 +56,49 @@ func (ru RawUnmarshal) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON ensures consistent behavior with json.RawMessage
 func (ru RawUnmarshal) UnmarshalJSON(data []byte) error {
 	return ru.Bytes.UnmarshalJSON(data)
+}
+
+// JSONType represents a JSON value's type
+type JSONType string
+
+const (
+	// JSONObject is a JSON object-like type
+	JSONObject JSONType = "object"
+	// JSONArray is a JSON array-like type
+	JSONArray JSONType = "array"
+	// JSONNumber is a JSON numeric type
+	JSONNumber JSONType = "number"
+	// JSONString is a JSON string type
+	JSONString JSONType = "string"
+	// JSONNull is a JSON null type
+	JSONNull JSONType = "null"
+	// JSONInvalid is not a valid JSON type
+	JSONInvalid JSONType = "invalid"
+)
+
+// TypeOfJSON determines the JSON message type of the underlying value
+// If the underlying value is malformed JSON, it will return JSONInvalid
+func (ru RawUnmarshal) TypeOfJSON() (t JSONType) {
+	var v interface{}
+	err = json.Unmarshal(ru.Bytes, &v)
+
+	if err != nil {
+		err = fmt.Errorf("Unmarshal error: %w", err)
+		return
+	}
+
+	switch v.(type) {
+	case map[string]interface{}:
+		return JSONObject
+	case []interface{}:
+		return JSONArray
+	case float64:
+		return JSONNumber
+	case string:
+		return JSONString
+	default:
+		return JSONInvalid
+	}
 }
 
 // Marshal provides convenient defaults for March{}.Marshal
@@ -159,4 +203,25 @@ func (M March) UnmarshalDefault(data []byte, v interface{}) (err error) {
 		return M.DefaultUnmarshaler(data, v)
 	}
 	return M.UnmarshalAsJSON(data, v)
+}
+
+// Extension is a method which MAY be called by an encoder,
+// usually according to the presence of flags.
+type Extension func(March, *Values, *reflect.Value, *FieldDescriptor, int) (bool, error)
+
+// DefaultExtensions contains basic features supported by March out-of-the-box.
+var DefaultExtensions = map[string]Extension{
+	"hoist": func(M March, values *Values, vfield *reflect.Value, tfield *FieldDescriptor, i int) (skip bool, err error) {
+		*values = append(*values, *vfield) // Hoist
+		skip = true
+		return
+	},
+}
+
+// GetExtensions returns the extensions map on the struct or a default
+func (M March) GetExtensions() map[string]Extension {
+	if M.Extensions != nil {
+		return M.Extensions
+	}
+	return DefaultExtensions
 }

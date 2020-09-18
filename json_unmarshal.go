@@ -47,12 +47,16 @@ func (M March) UnmarshalAsJSON(data []byte, v interface{}) (err error) {
 		}
 	}
 
+	// TODO see json.newTypeEncoder pattern
+
 	{ // Sanity check and type switching
 		switch k := T.Kind(); k {
 		case reflect.Ptr:
 			return M.unmarshalJSONPtr(T, V, data)
 		case reflect.Struct:
 			return M.unmarshalJSONStruct(T, V, data)
+		// case reflect.Interface:
+		// TODO implement handling for interfaces
 		// case reflect.Map:
 		// TODO implement specific support for custom types under maps
 		// https://golang.org/ref/spec#Map_types
@@ -61,9 +65,10 @@ func (M March) UnmarshalAsJSON(data []byte, v interface{}) (err error) {
 		case reflect.Slice:
 			return M.unmarshalJSONSlice(T, V, data)
 		default: // Perform some primitive unmarshaling
-			if V.Type().Kind() == reflect.Interface {
-				V = V.Elem()
-			}
+			// if V.Type().Kind() == reflect.Interface {
+			// 	V = V.Elem()
+			// 	// Might not be able to call V.Type because V might now be a zero value
+			// }
 			return M.unmarshalJSONValue(V.Type(), V, data)
 		}
 	}
@@ -71,7 +76,7 @@ func (M March) UnmarshalAsJSON(data []byte, v interface{}) (err error) {
 func (M March) unmarshalJSONSlice(t reflect.Type, v reflect.Value, data json.RawMessage) (err error) {
 	elems := []json.RawMessage{}
 	if err = json.Unmarshal(data, &elems); err != nil {
-		return fmt.Errorf("Failed to unmarshal slice: %s%w", err.Error(), err)
+		return fmt.Errorf("Failed to unmarshal slice: %w", err)
 	}
 
 	elemType := v.Type().Elem()
@@ -99,13 +104,13 @@ func (M March) unmarshalJSONStruct(t reflect.Type, v reflect.Value, data json.Ra
 		var ok bool
 		input, ok, err = tryReadFields(v.Type(), v, data, M.ReadFieldsMethodName())
 		if err != nil {
-			return fmt.Errorf("%s failed: %s%w", M.ReadFieldsMethodName(), err.Error(), err)
+			return fmt.Errorf("%s failed: %w", M.ReadFieldsMethodName(), err)
 		}
 		if !ok {
 			input, err = ReadFieldsJSON(data)
 		}
 		if err != nil {
-			return fmt.Errorf("ReadFieldsJSON failed: %s%w", err.Error(), err)
+			return fmt.Errorf("ReadFieldsJSON failed: %w", err)
 		}
 	}
 
@@ -138,16 +143,15 @@ func (M March) unmarshalJSONStruct(t reflect.Type, v reflect.Value, data json.Ra
 					continue // There is no data to put here
 				}
 
+				var field reflect.Value
 				if tfield.Kind == reflect.Ptr {
-					field := reflect.New(tfield.Type.Elem())
-					err = M.Unmarshal(ifield, &field)
-					vfield.Set(field)
-
+					field = reflect.New(tfield.Type.Elem())
 				} else {
-					field := reflect.New(tfield.Type).Elem()
-					err = M.Unmarshal(ifield, &field)
-					vfield.Set(field)
+					field = reflect.New(tfield.Type).Elem()
 				}
+				err = M.Unmarshal(ifield, &field)
+				vfield.Set(field)
+				// fmt.Printf("GOT: %#v, SET %#v\n", field, vfield)
 
 				if err != nil && M.Verbose {
 					fmt.Printf("Error Unmarshaling %s: %s", tfield.TagName, err.Error())
@@ -197,6 +201,17 @@ func (M March) unmarshalJSONStruct(t reflect.Type, v reflect.Value, data json.Ra
 		}
 	}
 	return nil
+}
+
+// UnwrapJSON is used to convert the bytes of a json.RawMessage into the underlying bytes contained
+// within the json message (this means unwrapping quotes from strings, for example).
+func UnwrapJSON(raw []byte) (data []byte, err error) {
+	target := ""
+	err = json.Unmarshal(json.RawMessage(raw), &target)
+	if err == nil {
+		data = []byte(target)
+	}
+	return
 }
 
 func (M March) unmarshalJSONPtr(t reflect.Type, v reflect.Value, data json.RawMessage) (err error) {
@@ -260,6 +275,7 @@ func (M March) unmarshalJSONValue(t reflect.Type, v reflect.Value, data json.Raw
 func ReadFieldsJSON(data []byte) (fields map[string][]byte, err error) {
 	// Get json fields
 	fields = map[string][]byte{}
+	// inputs := map[string][]byte{}
 	inputs := map[string]json.RawMessage{}
 	err = json.Unmarshal(data, &inputs)
 	if err != nil {
@@ -267,6 +283,7 @@ func ReadFieldsJSON(data []byte) (fields map[string][]byte, err error) {
 	}
 	for k, field := range inputs {
 		fields[k] = field
+		fmt.Printf("\t\t%s: %s\n", k, string(field))
 	}
 	return
 }

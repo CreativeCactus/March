@@ -7,7 +7,7 @@ import (
 	"reflect"
 )
 
-// MarshalAsJSON marshals to JSON via of WriteFieldsJSON.
+// MarshalAsJSON marshals to JSON via WriteFieldsJSON.
 // v must be a reflect.Value or the value to marshal.
 // Use reflect.ValueOf(v) twice if trying to marshal reflect.Value.
 func (M March) MarshalAsJSON(v interface{}) (data []byte, err error) {
@@ -59,6 +59,7 @@ func (M March) marshalJSONStruct(v reflect.Value) (data []byte, err error) {
 	output := map[string][]byte{}
 	{ // Iterate over all fields
 		values := Values{v}
+	fields:
 		for i := 0; i < values.TotalFields(); i++ {
 			vfield, tfield, ok := values.FieldAt(i, M.TagKey())
 
@@ -79,9 +80,18 @@ func (M March) marshalJSONStruct(v reflect.Value) (data []byte, err error) {
 			}
 
 			{ // Check flags
-				if tfield.FlagsContain(FlagHoist) {
-					values = append(values, vfield)
-					continue // Handled later in the loop
+				for name, extension := range M.GetExtensions() {
+					if tfield.FlagsContain(name) {
+						skip := false
+						skip, err = extension(M, &values, &vfield, &tfield, i)
+						if err != nil {
+							err = fmt.Errorf("Extension %s: Error on field %d/%d: %w", name, i, values.TotalFields(), err)
+							return
+						}
+						if skip {
+							continue fields // Handled later in the loop
+						}
+					}
 				}
 			}
 
@@ -102,7 +112,7 @@ func (M March) marshalJSONStruct(v reflect.Value) (data []byte, err error) {
 		var ok bool
 		data, ok, err = tryWriteFields(v.Type(), v, output, M.WriteFieldsMethodName())
 		if err != nil {
-			err = fmt.Errorf("%s failed: %s%w", M.WriteFieldsMethodName(), err.Error(), err)
+			err = fmt.Errorf("%s failed: %w", M.WriteFieldsMethodName(), err)
 			return
 		}
 		if !ok {
@@ -110,7 +120,7 @@ func (M March) marshalJSONStruct(v reflect.Value) (data []byte, err error) {
 			data, err = WriteFieldsJSON(output)
 		}
 		if err != nil {
-			err = fmt.Errorf("WriteFieldsJSON failed: %s%w", err.Error(), err)
+			err = fmt.Errorf("WriteFieldsJSON failed: %w", err)
 			return
 		}
 	}

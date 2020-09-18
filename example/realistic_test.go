@@ -1,6 +1,7 @@
 package example
 
 import (
+	"encoding/base64"
 	"fmt"
 	"testing"
 
@@ -48,6 +49,14 @@ func TestRuntimeReadRemains(t *testing.T) {
 		}
 		t.Logf("Lazy Unmarshaled %d\n", n)
 	}
+	{ // Lazy unmarshal to wrong type
+		n := ""
+		if err := x.Extras["int"].UnmarshalTo(&n); err == nil {
+			t.Fatalf("Lazy Unmarshal did not return error for wrong type")
+		} else if want := "json: cannot unmarshal number into Go value of type string"; err.Error() != want {
+			t.Fatalf("Lazy Unmarshal returned: %s, wanted %s", err.Error(), want)
+		}
+	}
 	{ // Lazy unmarshal a complex type
 		m := map[string][]int{}
 		if err := x.Extras["map"].UnmarshalTo(&m); err != nil {
@@ -71,5 +80,83 @@ func TestRuntimeReadRemains(t *testing.T) {
 		}
 		t.Logf("Lazy Unmarshaled %d\n", n)
 		t.Logf("Lazy Unmarshal got expected error %s\n", expect)
+	}
+}
+
+type Base64Data []byte
+
+func (b64 *Base64Data) MarshalJSON() (data []byte, err error) {
+	str := ""
+	str = base64.StdEncoding.EncodeToString(*b64)
+	data = []byte(fmt.Sprintf(`"%s"`, str))
+
+	return
+}
+func (b64 *Base64Data) UnmarshalJSON(data []byte) (err error) {
+	if string(data) == "null" {
+		return // https://golang.org/src/encoding/json/decode.go#L116
+	}
+	// TODO better document the interface between march and jsonmarch
+
+	raw := []byte{}
+	if raw, err = march.UnwrapJSON(data); err != nil {
+		return
+	}
+
+	*b64, err = base64.StdEncoding.DecodeString(string(raw))
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	return
+}
+
+type Nested64 struct {
+	ID     string     `March:"id"`
+	Base64 Base64Data `March:"base64"`
+}
+
+func TestRuntimeReadCustom(t *testing.T) {
+	M := march.March{Strict: true}
+	// TODO make strict default on again!
+	// TODO test via a RawUnmarshal
+	N := Nested64{}
+	{
+		data := `{
+			"id":"a",
+			"base64":"aGVsbG8gd29ybGQ="
+			}`
+		if err := M.Unmarshal([]byte(data), &N); err != nil {
+			t.Fatalf("Failed to unmarshal: %s", err.Error())
+		}
+
+		got := N.Base64
+		if want := "hello world"; string(got) != want {
+			t.Errorf("Want: %s\nHave: %#v", want, (got))
+		}
+		t.Logf("%#v", got)
+	}
+}
+
+type NestedPtr64 struct {
+	ID     string      `March:"id"`
+	Base64 *Base64Data `March:"base64"`
+}
+
+func TestRuntimeReadPtr(t *testing.T) {
+	M := march.March{}
+	N := NestedPtr64{}
+	{
+		data := `{
+			"id":"a",
+			"base64":"aGVsbG8gd29ybGQ="
+			}`
+		if err := M.Unmarshal([]byte(data), &N); err != nil {
+			t.Fatalf("Failed to unmarshal: %s", err.Error())
+		}
+		got := *N.Base64
+		if want := "hello world"; string(got) != want {
+			t.Errorf("Want: %s\nHave: %#v", want, (got))
+		}
+		t.Logf("%#v", got)
 	}
 }
